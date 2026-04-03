@@ -4,6 +4,8 @@
 
 ![Preview](preview.png)
 
+<img width="943" height="315" alt="image" src="https://github.com/user-attachments/assets/fd091eab-cb0f-42c8-9173-51dfbe61e233" />
+
 
   This repository is a restored Claude Code source tree reconstructed primarily from source maps and missing-module backfilling.
 
