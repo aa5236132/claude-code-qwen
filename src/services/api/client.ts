@@ -218,6 +218,30 @@ export async function getAnthropicClient({
     // we have always been lying about the return type - this doesn't support batching or models
     return new AnthropicFoundry(foundryArgs) as unknown as Anthropic
   }
+  if (isEnvTruthy(process.env.CLAUDE_CODE_USE_QWEN)) {
+    const { getQwenApiKey, getQwenBaseUrl } = await import('../../utils/model/qwen.js')
+    const { createQwenFetchAdapter } = await import('../../utils/model/qwen-adapter.js')
+
+    const qwenApiKey = getQwenApiKey()
+    if (!qwenApiKey) {
+      throw new Error('QWEN_API_KEY environment variable is required when CLAUDE_CODE_USE_QWEN is enabled')
+    }
+
+    const qwenBaseUrl = getQwenBaseUrl()
+
+    // Create fetch adapter to convert Anthropic API format to OpenAI format
+    const qwenFetch = createQwenFetchAdapter(qwenBaseUrl, qwenApiKey, resolvedFetch)
+
+    const clientConfig: ConstructorParameters<typeof Anthropic>[0] = {
+      apiKey: qwenApiKey,
+      baseURL: qwenBaseUrl,
+      ...ARGS,
+      fetch: qwenFetch,
+      ...(isDebugToStdErr() && { logger: createStderrLogger() }),
+    }
+
+    return new Anthropic(clientConfig)
+  }
   if (isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX)) {
     // Refresh GCP credentials if gcpAuthRefresh is configured and credentials are expired
     // This is similar to how we handle AWS credential refresh for Bedrock

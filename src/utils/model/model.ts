@@ -463,6 +463,8 @@ export function parseUserSpecifiedModel(
         return getDefaultHaikuModel() + (has1mTag ? '[1m]' : '')
       case 'opus':
         return getDefaultOpusModel() + (has1mTag ? '[1m]' : '')
+      case 'qwen':
+        return getModelStrings().qwen36plus
       case 'best':
         return getBestModel()
       default:

@@ -27,8 +27,12 @@ type OAuthStatus = {
   state: 'idle';
 } // Initial state, waiting to select login method
 | {
+  state: 'platform_selection';
+} // Select specific platform (Bedrock/Vertex/Foundry/Qwen)
+| {
   state: 'platform_setup';
-} // Show platform setup info (Bedrock/Vertex/Foundry)
+  platform?: 'bedrock' | 'vertex' | 'foundry' | 'qwen';
+} // Show platform setup info (Bedrock/Vertex/Foundry/Qwen)
 | {
   state: 'ready_to_start';
 } // Flow started, waiting for browser to open
@@ -121,9 +125,20 @@ export function ConsoleOAuthFlow({
 
   // Handle Enter to continue from platform setup
   useKeybinding('confirm:yes', () => {
-    setOAuthStatus({
-      state: 'idle'
-    });
+    // For third-party platforms (Qwen, Bedrock, Vertex, Foundry),
+    // user has set environment variables and is ready to continue
+    if (oauthStatus.state === 'platform_setup' && oauthStatus.platform) {
+      // Complete the setup and proceed to main interface
+      logEvent('tengu_oauth_platform_configured', {
+        platform: oauthStatus.platform as any
+      });
+      onDone();
+    } else {
+      // Go back to login options for other cases
+      setOAuthStatus({
+        state: 'idle'
+      });
+    }
   }, {
     context: 'Confirmation',
     isActive: oauthStatus.state === 'platform_setup'
@@ -403,7 +418,7 @@ function OAuthStatusMessage(t0) {
         let t6;
         if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
           t6 = [t4, t5, {
-            label: <Text>3rd-party platform ·{" "}<Text dimColor={true}>Amazon Bedrock, Microsoft Foundry, or Vertex AI</Text>{"\n"}</Text>,
+            label: <Text>3rd-party platform ·{" "}<Text dimColor={true}>Amazon Bedrock, Microsoft Foundry, Vertex AI, or Qwen</Text>{"\n"}</Text>,
             value: "platform"
           }];
           $[5] = t6;
@@ -416,7 +431,7 @@ function OAuthStatusMessage(t0) {
               if (value_0 === "platform") {
                 logEvent("tengu_oauth_platform_selected", {});
                 setOAuthStatus({
-                  state: "platform_setup"
+                  state: "platform_selection"
                 });
               } else {
                 setOAuthStatus({
@@ -448,60 +463,163 @@ function OAuthStatusMessage(t0) {
         }
         return t8;
       }
-    case "platform_setup":
+    case "platform_selection":
       {
         let t1;
         if ($[12] === Symbol.for("react.memo_cache_sentinel")) {
-          t1 = <Text bold={true}>Using 3rd-party platforms</Text>;
+          t1 = <Text bold={true}>Select a 3rd-party platform</Text>;
           $[12] = t1;
         } else {
           t1 = $[12];
         }
         let t2;
-        let t3;
         if ($[13] === Symbol.for("react.memo_cache_sentinel")) {
-          t2 = <Text>Claude Code supports Amazon Bedrock, Microsoft Foundry, and Vertex AI. Set the required environment variables, then restart Claude Code.</Text>;
-          t3 = <Text>If you are part of an enterprise organization, contact your administrator for setup instructions.</Text>;
+          t2 = [
+            {
+              label: <Text>Amazon Bedrock ·{" "}<Text dimColor={true}>AWS-hosted Claude models</Text>{"\n"}</Text>,
+              value: "bedrock"
+            },
+            {
+              label: <Text>Microsoft Foundry ·{" "}<Text dimColor={true}>Azure-hosted Claude models</Text>{"\n"}</Text>,
+              value: "foundry"
+            },
+            {
+              label: <Text>Vertex AI ·{" "}<Text dimColor={true}>Google Cloud-hosted Claude models</Text>{"\n"}</Text>,
+              value: "vertex"
+            },
+            {
+              label: <Text>Qwen ·{" "}<Text dimColor={true}>Alibaba Cloud Qwen models</Text>{"\n"}</Text>,
+              value: "qwen"
+            }
+          ];
           $[13] = t2;
-          $[14] = t3;
         } else {
           t2 = $[13];
-          t3 = $[14];
+        }
+        let t3;
+        if ($[14] !== setOAuthStatus) {
+          t3 = <Box><Select options={t2} onChange={value_0 => {
+              logEvent("tengu_oauth_platform_type_selected", { platform: value_0 as any });
+              setOAuthStatus({
+                state: "platform_setup",
+                platform: value_0 as 'bedrock' | 'vertex' | 'foundry' | 'qwen'
+              });
+            }} /></Box>;
+          $[14] = setOAuthStatus;
+          $[15] = t3;
+        } else {
+          t3 = $[15];
         }
         let t4;
-        if ($[15] === Symbol.for("react.memo_cache_sentinel")) {
-          t4 = <Text bold={true}>Documentation:</Text>;
-          $[15] = t4;
+        if ($[16] !== t1 || $[17] !== t3) {
+          t4 = <Box flexDirection="column" gap={1} marginTop={1}>{t1}{t3}</Box>;
+          $[16] = t1;
+          $[17] = t3;
+          $[18] = t4;
         } else {
-          t4 = $[15];
+          t4 = $[18];
+        }
+        return t4;
+      }
+    case "platform_setup":
+      {
+        const platform = oauthStatus.platform;
+        let t1;
+        if ($[19] !== platform) {
+          const platformName = platform === 'bedrock' ? 'Amazon Bedrock'
+            : platform === 'foundry' ? 'Microsoft Foundry'
+            : platform === 'vertex' ? 'Vertex AI'
+            : platform === 'qwen' ? 'Qwen'
+            : '3rd-party platform';
+          t1 = <Text bold={true}>Setting up {platformName}</Text>;
+          $[19] = platform;
+          $[27] = t1;
+        } else {
+          t1 = $[27];
+        }
+        let t2;
+        let t3;
+        if ($[20] !== platform) {
+          if (platform === 'qwen') {
+            t2 = <Text>To use Qwen models, you only need to set your API key:</Text>;
+            t3 = <Box flexDirection="column" marginTop={1} gap={1}>
+              <Box flexDirection="column">
+                <Text><Text bold>Step 1:</Text> Enable Qwen provider</Text>
+                <Text dimColor>  export CLAUDE_CODE_USE_QWEN=true</Text>
+              </Box>
+              <Box flexDirection="column">
+                <Text><Text bold>Step 2:</Text> Set your API key (get it from DashScope)</Text>
+                <Text dimColor>  export DASHSCOPE_API_KEY=sk-your-api-key-here</Text>
+                <Text dimColor>  or</Text>
+                <Text dimColor>  export QWEN_API_KEY=sk-your-api-key-here</Text>
+              </Box>
+              <Box flexDirection="column" marginTop={1}>
+                <Text dimColor>Model: qwen-plus (pre-configured)</Text>
+                <Text dimColor>Base URL: https://dashscope.aliyuncs.com/compatible-mode/v1 (pre-configured)</Text>
+              </Box>
+            </Box>;
+          } else {
+            t2 = <Text>Claude Code supports Amazon Bedrock, Microsoft Foundry, Vertex AI, and Qwen. Set the required environment variables, then restart Claude Code.</Text>;
+            t3 = <Text>If you are part of an enterprise organization, contact your administrator for setup instructions.</Text>;
+          }
+          $[20] = platform;
+          $[28] = t2;
+          $[29] = t3;
+        } else {
+          t2 = $[28];
+          t3 = $[29];
+        }
+        let t4;
+        if ($[22] !== platform) {
+          t4 = <Text bold={true}>Documentation:</Text>;
+          $[22] = platform;
+          $[30] = t4;
+        } else {
+          t4 = $[30];
         }
         let t5;
-        if ($[16] === Symbol.for("react.memo_cache_sentinel")) {
-          t5 = <Text>· Amazon Bedrock:{" "}<Link url="https://code.claude.com/docs/en/amazon-bedrock">https://code.claude.com/docs/en/amazon-bedrock</Link></Text>;
-          $[16] = t5;
-        } else {
-          t5 = $[16];
-        }
         let t6;
-        if ($[17] === Symbol.for("react.memo_cache_sentinel")) {
-          t6 = <Text>· Microsoft Foundry:{" "}<Link url="https://code.claude.com/docs/en/microsoft-foundry">https://code.claude.com/docs/en/microsoft-foundry</Link></Text>;
-          $[17] = t6;
-        } else {
-          t6 = $[17];
-        }
         let t7;
-        if ($[18] === Symbol.for("react.memo_cache_sentinel")) {
-          t7 = <Box flexDirection="column" marginTop={1}>{t4}{t5}{t6}<Text>· Vertex AI:{" "}<Link url="https://code.claude.com/docs/en/google-vertex-ai">https://code.claude.com/docs/en/google-vertex-ai</Link></Text></Box>;
-          $[18] = t7;
+        if ($[23] !== platform) {
+          if (platform === 'bedrock') {
+            t5 = <Text>· Amazon Bedrock:{" "}<Link url="https://code.claude.com/docs/en/amazon-bedrock">https://code.claude.com/docs/en/amazon-bedrock</Link></Text>;
+          } else if (platform === 'foundry') {
+            t5 = <Text>· Microsoft Foundry:{" "}<Link url="https://code.claude.com/docs/en/microsoft-foundry">https://code.claude.com/docs/en/microsoft-foundry</Link></Text>;
+          } else if (platform === 'vertex') {
+            t5 = <Text>· Vertex AI:{" "}<Link url="https://code.claude.com/docs/en/google-vertex-ai">https://code.claude.com/docs/en/google-vertex-ai</Link></Text>;
+          } else if (platform === 'qwen') {
+            t5 = <Box flexDirection="column">
+              <Text>· Get API Key: <Link url="https://dashscope.console.aliyun.com/">https://dashscope.console.aliyun.com/</Link></Text>
+              <Text>· Documentation: See QWEN_INTEGRATION.md in repository</Text>
+            </Box>;
+          } else {
+            t5 = <Box flexDirection="column">
+              <Text>· Amazon Bedrock:{" "}<Link url="https://code.claude.com/docs/en/amazon-bedrock">https://code.claude.com/docs/en/amazon-bedrock</Link></Text>
+              <Text>· Microsoft Foundry:{" "}<Link url="https://code.claude.com/docs/en/microsoft-foundry">https://code.claude.com/docs/en/microsoft-foundry</Link></Text>
+              <Text>· Vertex AI:{" "}<Link url="https://code.claude.com/docs/en/google-vertex-ai">https://code.claude.com/docs/en/google-vertex-ai</Link></Text>
+              <Text>· Qwen: See QWEN_INTEGRATION.md in repository</Text>
+            </Box>;
+          }
+          t7 = <Box flexDirection="column" marginTop={1}>{t4}{t5}</Box>;
+          $[23] = platform;
+          $[31] = t7;
         } else {
-          t7 = $[18];
+          t7 = $[31];
         }
         let t8;
-        if ($[19] === Symbol.for("react.memo_cache_sentinel")) {
-          t8 = <Box flexDirection="column" gap={1} marginTop={1}>{t1}<Box flexDirection="column" gap={1}>{t2}{t3}{t7}<Box marginTop={1}><Text dimColor={true}>Press <Text bold={true}>Enter</Text> to go back to login options.</Text></Box></Box></Box>;
-          $[19] = t8;
+        if ($[26] !== t1 || $[32] !== t2 || $[33] !== t3 || $[34] !== t7 || $[36] !== platform) {
+          const continueText = platform
+            ? <Text dimColor={true}>After setting environment variables, press <Text bold={true}>Enter</Text> to continue.</Text>
+            : <Text dimColor={true}>Press <Text bold={true}>Enter</Text> to go back to login options.</Text>;
+          t8 = <Box flexDirection="column" gap={1} marginTop={1}>{t1}<Box flexDirection="column" gap={1}>{t2}{t3}{t7}<Box marginTop={1}>{continueText}</Box></Box></Box>;
+          $[26] = t1;
+          $[32] = t2;
+          $[33] = t3;
+          $[34] = t7;
+          $[36] = platform;
+          $[35] = t8;
         } else {
-          t8 = $[19];
+          t8 = $[35];
         }
         return t8;
       }

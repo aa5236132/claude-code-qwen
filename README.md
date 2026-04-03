@@ -18,6 +18,7 @@
   - `bun run dev` now routes through the restored CLI bootstrap instead of the temporary `dev-entry` shim.
   - `bun run dev --help` shows the full command tree from the restored CLI.
   - A number of modules still contain restoration-time fallbacks, so behavior may differ from the original Claude Code implementation.
+  - **NEW**: Added support for Qwen 3.6-Plus model integration. See [QWEN_INTEGRATION.md](QWEN_INTEGRATION.md) for details.
 
   ## Restored so far
 
@@ -84,6 +85,7 @@
   - `bun run dev` 现在会通过还原后的真实 CLI bootstrap 启动，而不是临时的 `dev-entry`。
   - `bun run dev --help` 可以显示还原后的完整命令树。
   - 仍有部分模块保留恢复期 fallback，因此行为可能与原始 Claude Code 实现不同。
+  - **新增**: 添加了对通义千问 Qwen 3.6-Plus 模型的支持。详见 [QWEN_INTEGRATION.md](QWEN_INTEGRATION.md)。
 
   ### 已恢复内容
 
